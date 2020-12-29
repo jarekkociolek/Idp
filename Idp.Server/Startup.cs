@@ -2,12 +2,18 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 
+using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.EntityFramework.Entities;
+using IdentityServer4.EntityFramework.Mappers;
+using IdentityServer4.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Idp.Server
@@ -36,10 +42,10 @@ namespace Idp.Server
             {
                 // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
                 options.EmitStaticAudienceClaim = true;
-            });
+            })
             //.AddInMemoryIdentityResources(Config.IdentityResources)
             //.AddInMemoryApiScopes(Config.ApiScopes)
-            //.AddInMemoryClients(Config.Clients);
+            .AddInMemoryClients(Config.Clients);
 
             var migrationAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
             builder.AddConfigurationStore(options =>
@@ -62,8 +68,9 @@ namespace Idp.Server
             builder.AddDeveloperSigningCredential();
         }
 
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, ConfigurationDbContext context)
         {
+            InitializeDatabase(app);
             if (Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -81,6 +88,54 @@ namespace Idp.Server
             {
                 endpoints.MapDefaultControllerRoute();
             });
+        }
+
+        private void InitializeDatabase(IApplicationBuilder app)
+        {
+            using var serviceScope = app.ApplicationServices
+                .GetService<IServiceScopeFactory>().CreateScope();
+
+            serviceScope.ServiceProvider
+                .GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
+
+            var context = serviceScope.ServiceProvider
+                .GetRequiredService<ConfigurationDbContext>();
+            context.Database.Migrate();
+            if (!context.Clients.Any())
+            {
+                foreach (var client in Config.Clients)
+                {
+                    context.Clients.Add(client.ToEntity());
+                }
+                context.SaveChanges();
+            }
+
+            if (!context.IdentityResources.Any())
+            {
+                foreach (var resource in Config.IdentityResources)
+                {
+                    context.IdentityResources.Add(resource.ToEntity());
+                }
+                context.SaveChanges();
+            }
+
+            if (!context.ApiScopes.Any())
+            {
+                foreach (var scopes in Config.ApiScopes)
+                {
+                    context.ApiScopes.Add(scopes.ToEntity());
+                }
+                context.SaveChanges();
+            }
+
+            if (!context.ApiResources.Any())
+            {
+                foreach (var resource in Config.ApiResources)
+                {
+                    context.ApiResources.Add(resource.ToEntity());
+                }
+                context.SaveChanges();
+            }
         }
     }
 }
