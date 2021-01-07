@@ -3,16 +3,15 @@
 
 
 using IdentityServer4.EntityFramework.DbContexts;
-using IdentityServer4.EntityFramework.Entities;
 using IdentityServer4.EntityFramework.Mappers;
-using IdentityServer4.Models;
+using Idp.Server.DbContexts;
+using Idp.Server.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -24,6 +23,7 @@ namespace Idp.Server
         public IConfiguration Configuration { get;  }
 
         private const string IdpConnectionStringName = "IdpConnectionString";
+        private const string UsersDataConnectionStringName = "UsersDataConnectionString";
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
         {
@@ -35,17 +35,14 @@ namespace Idp.Server
         {
             var connectionString = Configuration.GetConnectionString(IdpConnectionStringName);
 
-            // uncomment, if you want to add an MVC-based UI
+            services.AddDbContextPool<IdentityDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString(UsersDataConnectionStringName)));
             services.AddControllersWithViews();
 
             var builder = services.AddIdentityServer(options =>
             {
                 // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
                 options.EmitStaticAudienceClaim = true;
-            })
-            //.AddInMemoryIdentityResources(Config.IdentityResources)
-            //.AddInMemoryApiScopes(Config.ApiScopes)
-            .AddInMemoryClients(Config.Clients);
+            });
 
             var migrationAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
             builder.AddConfigurationStore(options =>
@@ -66,6 +63,7 @@ namespace Idp.Server
 
             // not recommended for production - you need to store your key material somewhere secure
             builder.AddDeveloperSigningCredential();
+            services.AddTransient<IUserService, UserService>();
         }
 
         public void Configure(IApplicationBuilder app, ConfigurationDbContext context)
@@ -135,6 +133,19 @@ namespace Idp.Server
                     context.ApiResources.Add(resource.ToEntity());
                 }
                 context.SaveChanges();
+            }
+
+            var idpUsers = serviceScope.ServiceProvider
+                .GetRequiredService<IdentityDbContext>();
+
+            idpUsers.Database.Migrate();
+            if (!idpUsers.Users.Any())
+            {
+                foreach (var user in Config.Users)
+                {
+                    idpUsers.Users.Add(user);
+                }
+                idpUsers.SaveChanges();
             }
         }
     }
