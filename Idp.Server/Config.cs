@@ -3,6 +3,8 @@
 
 
 using IdentityServer4.Models;
+using Idp.Server.Entities;
+using System;
 using System.Collections.Generic;
 
 namespace Idp.Server
@@ -16,13 +18,21 @@ namespace Idp.Server
             };
 
         public static IEnumerable<ApiScope> ApiScopes =>
-            new ApiScope[]
-            { };
+            new List<ApiScope>
+                {
+                };
 
         public static IEnumerable<ApiResource> ApiResources =>
             new ApiResource[] {};
 
         public static IEnumerable<Client> Clients =>
-            new Client[] { };
+            new Client[] 
+            {
+            };
+
+        public static IEnumerable<User> Users =>
+            new User[] 
+            {};
+
     }
 }
