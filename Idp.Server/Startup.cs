@@ -44,6 +44,8 @@ namespace Idp.Server
                 options.EmitStaticAudienceClaim = true;
             });
 
+            builder.AddProfileService<ProfileService>();
+
             var migrationAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
             builder.AddConfigurationStore(options =>
             {

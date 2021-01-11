@@ -1,4 +1,5 @@
 ﻿using Idp.Server.Entities;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Idp.Server.Services
@@ -7,5 +8,6 @@ namespace Idp.Server.Services
     {
         Task<bool> ValidateCredentials(string username, string password);
         Task<User> FindByUsername(string username);
+        Task<IEnumerable<UserClaim>> GetClaimBySubjectId(string subjectId);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Idp.Server.Entities
@@ -23,5 +24,7 @@ namespace Idp.Server.Entities
 
         [MaxLength(200)]
         public string Email { get; set; }
+
+        public ICollection<UserClaim> Claims { get; set; } = new List<UserClaim>();
     }
 }

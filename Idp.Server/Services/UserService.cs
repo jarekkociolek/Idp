@@ -2,6 +2,7 @@
 using Idp.Server.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Idp.Server.Services
@@ -24,6 +25,20 @@ namespace Idp.Server.Services
 
             return await _context.Users
                  .FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<IEnumerable<UserClaim>> GetClaimBySubjectId(string subjectId)
+        {
+            if (string.IsNullOrWhiteSpace(subjectId))
+            {
+                throw new ArgumentNullException(nameof(subjectId));
+            }
+
+            var user = await _context.Users
+                .Include(q => q.Claims)
+                .FirstOrDefaultAsync(u => u.Subject == subjectId);
+
+            return user.Claims;
         }
 
         public async Task<bool> ValidateCredentials(string username, string password)
