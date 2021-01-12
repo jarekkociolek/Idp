@@ -21,8 +21,7 @@ namespace Idp.Server.Services
             var subjectId = context.Subject.GetSubjectId();
             var claimsForUser = (await _userService.GetClaimBySubjectId(subjectId)).ToList();
 
-            context.AddRequestedClaims(
-                claimsForUser.Select(c => new Claim(c.Type, c.Value)).ToList());
+            context.IssuedClaims.AddRange(claimsForUser.Select(c => new Claim(c.Type, c.Value)).ToList());
         }
 
         public Task IsActiveAsync(IsActiveContext context)
